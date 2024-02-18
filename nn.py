@@ -1,6 +1,17 @@
 from functions import *
+import pandas as pd
 
-a = np.array([-3,0,2,4,15,-20,0.23, -0.2423])
+n = Network()
 
 
-print(sigmoid(a))
+dataset = pd.read_csv(r'mnist_train.csv', nrows=600)
+
+data = np.array(dataset)
+
+m, n =  data.shape
+
+labels = data.T[0]
+inputs = data.T[1:n]
+
+print(labels)
+print(inputs)
