@@ -1,3 +1,6 @@
-import numpy as np
+from functions import *
 
-print(np.pi)
+a = [-3,0,2,4,15,-20,0.23, -0.2423]
+
+
+print(RElU(a))
