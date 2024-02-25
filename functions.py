@@ -85,12 +85,33 @@ class Network:
 
 def draw_image(SCREEN, img, pos):
     temp1, temp2 = 0, 0
+    rects = []
     for x in range(len(img)):
-        color = img[x]
+        color = img[x]*255
         if(x % 28 == 0):
             temp1 = 0
             temp2 += 1
         else:
             temp1 += 1
-        rect = pygame.Rect(pos[0]+(temp1*5),pos[1]+(temp2*5), 5, 5)
+        rect = pygame.Rect(pos[0]+(temp1*10),pos[1]+(temp2*10), 10, 10)
+        rects.append(rect)
         pygame.draw.rect(SCREEN, (color, color, color), rect)
+    return rects
+
+def editor(rects, img):
+    for rect_index in range(len(rects)):
+        if rects[rect_index].collidepoint(pygame.mouse.get_pos()):
+            if img[rect_index] < 1:
+                img[rect_index] = 1
+
+            if img[rect_index-1] <= 0.9:
+                img[rect_index-1] += 0.01
+
+            if img[rect_index+1] <= 0.9:
+                img[rect_index+1] += 0.01
+
+            if img[rect_index-28] <= 0.9:
+                img[rect_index-28] += 0.01
+
+            if img[rect_index+28] <= 0.9:
+                img[rect_index+28] += 0.01
