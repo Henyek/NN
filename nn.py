@@ -1,5 +1,8 @@
 from functions import *
 import pandas as pd
+from matplotlib import pyplot
+import time
+
 
 NN = Network()
 
@@ -7,29 +10,34 @@ pygame.init()
 
 SCREEN = pygame.display.set_mode((640, 640))
 
-# dataset = pd.read_csv(r'mnist_train.csv', nrows=100)
+dataset = pd.read_csv(r'mnist_train.csv', nrows=60000)
 
-# data = np.array(dataset)
+data = np.array(dataset)
 
-# m, n =  data.shape
+m, n =  data.shape
 
-# labels = data.T[0]
-# inputs = data.T[1:n]/255
+labels = data.T[0]
+inputs = data.T[1:n]/255
 
 # inputs_color = data.T[1:n]
 
-# iterations = 10000
+# iterations = 2000
 # i = 0
+# fitness = 0
+
+# NN.load_network(open('network_data.pickle', 'rb'))
+
 # for x in range(iterations):
 #     i += 1
 #     NN.Fprop(inputs)
 
 #     dW3, dB3, dW2, dB2, dW1, dB1 = NN.Bprop(labels, inputs, (m, n))
-#     NN.update_params(dW3, dB3, dW2, dB2, dW1, dB1, 0.1)    
-#     if i % 50 == 0:
+#     NN.update_params(dW3, dB3, dW2, dB2, dW1, dB1, 0.2)    
+#     if i % 20 == 0:
 #         print("Iteration: ", i)
 #         predictions = NN.get_perdict()
-#         print(NN.get_accu(predictions, labels))
+#         fitness = NN.get_accu(predictions, labels)
+#         print(fitness)
 
 
 
@@ -49,6 +57,16 @@ draw_state = False
 reset_button = pygame.Rect(0, 0, 200, 60)
 reset_button.centerx = SCREEN.get_rect().centerx
 reset_button.centery = SCREEN.get_rect().height - 70
+
+NN.Fprop(np.reshape(inputs.T[1], (784,1)))
+
+# pyplot.ion()
+
+# for x in range(16):
+#     New_im = sum(np.reshape(np.subtract(NN.W2[x], NN.B1[x]), (16, 1)) * NN.W1)
+#     pyplot.imshow(np.reshape(NN.W1[x], (28,28)), interpolation='nearest')
+#     pyplot.show()
+#     pyplot.pause(1)    
 
 
 while True:

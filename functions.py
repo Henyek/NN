@@ -29,7 +29,7 @@ class Network:
         
     def Fprop(self, inputs):
         self.Z1 = np.add(self.W1.dot(inputs), self.B1)
-        self.A1 = RElU(self.Z1)
+        self.A1 = sigmoid(self.Z1)
         self.Z2 = np.add(self.W2.dot(self.A1), self.B2)
         self.A2 = RElU(self.Z2)
         self.Z3 = np.add(self.W3.dot(self.A2), self.B3)
@@ -45,7 +45,7 @@ class Network:
         dZ2 = self.W3.T.dot(dZ3) * RElU_deriv(self.Z2)
         dW2 = (1 / shape[0]) * dZ2.dot(self.A1.T)
         dB2 = (1 / shape[0]) * np.sum(dZ2)
-        dZ1 = self.W2.T.dot(dZ2) * RElU_deriv(self.Z1)
+        dZ1 = self.W2.T.dot(dZ2) * (sigmoid(self.Z1) * (1 - sigmoid(self.Z1)))
         dW1 = (1 / shape[0]) * dZ1.dot(inputs.T)
         dB1 = (1 / shape[0]) * np.sum(dZ1)
         return(dW3, dB3, dW2, dB2, dW1, dB1)
