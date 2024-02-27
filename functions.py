@@ -1,11 +1,16 @@
 import numpy as np
 import pickle as pkl
 import pygame
+import cupy as cp
 
 
 
 def RElU(x):
     return np.maximum(0.1*x, x)
+
+
+def RElU_CUDA(x):
+    return cp.maximum(0.1*x, x)
 
 def RElU_deriv(x):
     return x > 0
@@ -13,16 +18,32 @@ def RElU_deriv(x):
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
+def sigmoid_CUDA(x):
+    return 1 / (1 + cp.exp(-x))
+
+def sigmoid_deriv(x):
+    return sigmoid(x) * (1 - sigmoid(x))
+
 class Network:
-    def __init__(self):
-        self.W1 = np.random.rand(16,784)*2-1
+    def __init__(self, geometry):
+        self.W1 = np.random.rand(geometry[1], geometry[0])*2-1
         self.Z1, self.Z2, self.Z3 = [], [], []
         self.A1, self.A2, self.A3 = [], [], []
-        self.B1 = np.random.rand(16,1)*2-1
-        self.W2 = np.random.rand(16,16)*2-1
-        self.B2 = np.random.rand(16,1)*2-1
-        self.W3 = np.random.rand(10,16)*2-1
-        self.B3 = np.random.rand(10,1)*2-1
+        self.B1 = np.random.rand(geometry[1],1)*2-1
+        self.W2 = np.random.rand(geometry[2],geometry[1])*2-1
+        self.B2 = np.random.rand(geometry[2],1)*2-1
+        self.W3 = np.random.rand(geometry[3],geometry[2])*2-1
+        self.B3 = np.random.rand(geometry[3],1)*2-1
+        
+    def init_CUDA(self, geometry):
+        self.W1 = cp.random.rand(geometry[1], geometry[0])*2-1
+        self.Z1, self.Z2, self.Z3 = [], [], []
+        self.A1, self.A2, self.A3 = [], [], []
+        self.B1 = cp.random.rand(geometry[1],1)*2-1
+        self.W2 = cp.random.rand(geometry[2],geometry[1])*2-1
+        self.B2 = cp.random.rand(geometry[2],1)*2-1
+        self.W3 = cp.random.rand(geometry[3],geometry[2])*2-1
+        self.B3 = cp.random.rand(geometry[3],1)*2-1
 
     def prnt(self):
         print(self.W1, self.B1, self.W2, self.B2, self.W3, self.B3)
@@ -33,6 +54,15 @@ class Network:
         self.Z2 = np.add(self.W2.dot(self.A1), self.B2)
         self.A2 = RElU(self.Z2)
         self.Z3 = np.add(self.W3.dot(self.A2), self.B3)
+        self.A3 = sigmoid(self.Z3)
+        return self.A3
+    
+    def Fprop_CUDA(self, inputs):
+        self.Z1 = cp.add(cp.dot(self.W1, inputs), self.B1)
+        self.A1 = sigmoid(self.Z1)
+        self.Z2 = cp.add(cp.dot(self.W2, self.A1), self.B2)
+        self.A2 = RElU(self.Z2)
+        self.Z3 = cp.add(cp.dot(self.W3, self.A2), self.B3)
         self.A3 = sigmoid(self.Z3)
         return self.A3
     
@@ -50,6 +80,20 @@ class Network:
         dB1 = (1 / shape[0]) * np.sum(dZ1)
         return(dW3, dB3, dW2, dB2, dW1, dB1)
     
+    def Bprop_CUDA(self, labels, inputs, shape):
+        expected = cp.zeros((labels.size, 10))
+        expected[cp.arange(labels.size), labels] = 1
+        dZ3 = cp.subtract(self.A3, expected.T)
+        dW3 = (1 / shape[0]) * cp.dot(dZ3, self.A2.T)
+        dB3 = (1 / shape[0]) * cp.sum(dZ3)
+        dZ2 = cp.dot(self.W3.T, dZ3) * RElU_deriv(self.Z2)
+        dW2 = (1 / shape[0]) * cp.dot(dZ2, self.A1.T)
+        dB2 = (1 / shape[0]) * cp.sum(dZ2)
+        dZ1 = cp.dot(self.W2.T, dZ2) * sigmoid_deriv(self.Z1)
+        dW1 = (1 / shape[0]) * cp.dot(dZ1, inputs.T)
+        dB1 = (1 / shape[0]) * cp.sum(dZ1)
+        return(dW3, dB3, dW2, dB2, dW1, dB1)
+    
     def update_params(self, dW3, dB3, dW2, dB2, dW1, dB1, alpha):
         self.W1 = self.W1 - alpha * dW1
         self.B1 = self.B1 - alpha * dB1
@@ -61,9 +105,14 @@ class Network:
     def get_perdict(self):
         return np.argmax(self.A3, 0)
     
+    def get_perdict_CUDA(self):
+        return cp.argmax(self.A3, 0)
+    
     def get_accu(self, predictions, labels):
-        # print(predictions, labels)
-        return np.sum(predictions == labels) / labels.size
+        return np.sum(predictions == labels) / labels.size    
+    
+    def get_accu_CUDA(self, predictions, labels):
+        return cp.sum(predictions == labels) / labels.size
         
     def save_network(self):
         with open('network_data.pickle', 'wb') as file:
@@ -105,13 +154,13 @@ def editor(rects, img):
                 img[rect_index] = 1
 
             if img[rect_index-1] <= 0.9:
-                img[rect_index-1] += 0.01
+                img[rect_index-1] += 0.05
 
             if img[rect_index+1] <= 0.9:
-                img[rect_index+1] += 0.01
+                img[rect_index+1] += 0.05
 
             if img[rect_index-28] <= 0.9:
-                img[rect_index-28] += 0.01
+                img[rect_index-28] += 0.05
 
             if img[rect_index+28] <= 0.9:
-                img[rect_index+28] += 0.01
+                img[rect_index+28] += 0.05
